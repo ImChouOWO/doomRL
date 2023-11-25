@@ -27,6 +27,18 @@ pip install opencv-python
 pip install vizdoom
 ```
 
+#### Run Script
+```
+cd ./doomRL
+```
+```
+python3 dqn.py
+```
+###### If you want to test the game, you can view the complete code for the game's settings in this script.
+```
+python3 main.py
+```
+
 #### References
 [An introduction to Deep Q-Learning: let’s play Doom]([https://www.google.com](https://www.freecodecamp.org/news/an-introduction-to-deep-q-learning-lets-play-doom-54d02d8017d8/)https://www.freecodecamp.org/news/an-introduction-to-deep-q-learning-lets-play-doom-54d02d8017d8/)
 
