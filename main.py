@@ -14,7 +14,7 @@ class DoomEnv(gym.Env):
         self.doom_game.init()
 
         self.action_space = spaces.Discrete(3)  # 假設有三種動作
-        self.observation_space = spaces.Box(low=0, high=255, shape=(240, 320, 3), dtype=np.uint8)  # 假設螢幕解析度為 320x240
+        self.observation_space = spaces.Box(low=0, high=255, shape=(240, 320, 3), dtype=np.uint8)  
         self.resize = [160,100]
     def step(self, action):
         actions = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
@@ -51,6 +51,7 @@ class DoomEnv(gym.Env):
         else:
             raise ValueError("Unexpected game state shape: {}".format(game_state.shape))
 
+        
         resized = cv2.resize(gray, (self.resize[0], self.resize[1]), interpolation=cv2.INTER_CUBIC)
         state = np.reshape(resized, (self.resize[1], self.resize[0], 1))
         return state
@@ -64,6 +65,8 @@ class DoomEnv(gym.Env):
 
     def close(self):
         self.doom_game.close()
+
+        
 
 if __name__ == "__main__":
     env = DoomEnv()

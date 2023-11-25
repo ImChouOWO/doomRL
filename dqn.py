@@ -64,8 +64,14 @@ def train(model, optimizer, criterion, replay_buffer, batch_size):
 
 # 主函數
 def main():
-    env = DoomEnv()  # 假設您已經創建了 DoomEnv 類
-    model = DQN(env.observation_space.shape, env.action_space.n)
+    # apply to apple silicon
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    
+    # apply to Nvidia
+    # device = torch.device("CUDA" if torch.backends.mps.is_available() else "cpu")
+
+    env = DoomEnv() 
+    model = DQN(env.observation_space.shape, env.action_space.n).to(device)
     optimizer = optim.Adam(model.parameters())
     criterion = nn.MSELoss()
     save_path = './model/model.pth'
@@ -83,7 +89,7 @@ def main():
         total_reward = 0
 
         while True:
-            action = model(torch.tensor(state, dtype=torch.float32).unsqueeze(0)).max(1)[1].item()
+            action = model(torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)).max(1)[1].item()
             next_state, reward, done, _ = env.step(action)
 
             replay_buffer.push(state, action, reward, next_state, done)
