@@ -41,11 +41,21 @@ class DoomEnv(gym.Env):
         return img
 
     
-    def img_preprocess(self,game_state):
-        gray = cv2.cvtColor(game_state,cv2.COLOR_RGB2GRAY)
-        resize = cv2.resize(gray,(self.resize[0],self.resize[1]),interpolation=cv2.INTER_CUBIC)
-        state = np.reshape(resize,(self.resize[1],self.resize[0],1))
+    def img_preprocess(self, game_state):
+        # game_state格式轉換為（高度 x 寬度 x 通道數）
+        if game_state.ndim == 3 and game_state.shape[0] == 3:
+            game_state = game_state.transpose(1, 2, 0)
+            gray = cv2.cvtColor(game_state, cv2.COLOR_RGB2GRAY)
+        elif game_state.ndim == 2 or (game_state.ndim == 3 and game_state.shape[0] == 1):
+            gray = game_state.squeeze(0)  # 如果已經是單通道，去除多餘的維度
+        else:
+            raise ValueError("Unexpected game state shape: {}".format(game_state.shape))
+
+        resized = cv2.resize(gray, (self.resize[0], self.resize[1]), interpolation=cv2.INTER_CUBIC)
+        state = np.reshape(resized, (self.resize[1], self.resize[0], 1))
         return state
+
+
 
 
 

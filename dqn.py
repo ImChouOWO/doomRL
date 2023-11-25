@@ -11,7 +11,7 @@ from main import DoomEnv
 class DQN(nn.Module):
     def __init__(self, input_shape, num_actions):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(np.prod(input_shape), 128)
+        self.fc1 = nn.Linear(16000, 128)
         self.fc2 = nn.Linear(128, 128)
         self.fc3 = nn.Linear(128, num_actions)
 
@@ -68,16 +68,16 @@ def main():
     model = DQN(env.observation_space.shape, env.action_space.n)
     optimizer = optim.Adam(model.parameters())
     criterion = nn.MSELoss()
-    save_path = './model'
+    save_path = './model/model.pth'
     replay_buffer = ReplayBuffer(10000)
 
     num_episodes = 1000
     batch_size = 32
     if os.path.exists(save_path):
         model.load_state_dict(torch.load(save_path))
-        print("model exit")
+        print("Model loaded")
     else:
-        print("model dosen't exit")
+        print("Model does not exist")
     for episode in range(num_episodes):
         state = env.reset()
         total_reward = 0
@@ -98,15 +98,11 @@ def main():
 
         print(f"Episode: {episode + 1}, Total Reward: {total_reward}")
 
-        if episode%100 == 0:
-            if not os.path.exists(save_path):
-                os.mkdir(save_path)
-                torch.save(model.state_dict(),save_path)
-                model.load_state_dict(torch.load(save_path))
-            else:
-                torch.save(model.state_dict(),save_path)
-                model.load_state_dict(torch.load(save_path))
-                print("model has been save")
+        if episode % 100 == 0:
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
+            torch.save(model.state_dict(), save_path)
+            print("Model has been saved")
+
                 
     env.close()
 
