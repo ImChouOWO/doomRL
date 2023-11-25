@@ -40,7 +40,7 @@ python3 main.py
 ```
 
 #### References
-[An introduction to Deep Q-Learning: let’s play Doom]([https://www.google.com](https://www.freecodecamp.org/news/an-introduction-to-deep-q-learning-lets-play-doom-54d02d8017d8/)https://www.freecodecamp.org/news/an-introduction-to-deep-q-learning-lets-play-doom-54d02d8017d8/)
+[An introduction to Deep Q-Learning: let’s play Doom](https://www.freecodecamp.org/news/an-introduction-to-deep-q-learning-lets-play-doom-54d02d8017d8/)
 
 
 #### TO DO List
