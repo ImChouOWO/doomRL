@@ -6,6 +6,7 @@ import random
 from collections import deque
 import os
 from main import DoomEnv
+import matplotlib.pyplot as plt
 
 # 定義 DQN 模型
 class DQN(nn.Module):
@@ -38,17 +39,17 @@ class ReplayBuffer:
         return len(self.buffer)
 
 # 訓練函數
-def train(model, optimizer, criterion, replay_buffer, batch_size):
+def train(model, optimizer, criterion, replay_buffer, batch_size,device):
     if len(replay_buffer) < batch_size:
         return
 
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
-    state = torch.tensor(state, dtype=torch.float32)
-    next_state = torch.tensor(next_state, dtype=torch.float32)
-    action = torch.tensor(action, dtype=torch.int64)
-    reward = torch.tensor(reward, dtype=torch.float32)
-    done = torch.tensor(done, dtype=torch.float32)
+    state = torch.tensor(state, dtype=torch.float32).to(device)
+    next_state = torch.tensor(next_state, dtype=torch.float32).to(device)
+    action = torch.tensor(action, dtype=torch.int64).to(device)
+    reward = torch.tensor(reward, dtype=torch.float32).to(device)
+    done = torch.tensor(done, dtype=torch.float32).to(device)
 
     q_values = model(state)
     next_q_values = model(next_state)
@@ -62,21 +63,36 @@ def train(model, optimizer, criterion, replay_buffer, batch_size):
     loss.backward()
     optimizer.step()
 
+
+def draw_chart(data,epoch):
+    save_path =f'./img/reward_trend_with_{epoch}_epoch.png'
+    plt.plot(data)
+    plt.title('Reward Trend')
+    plt.xlabel('Episodes')
+    plt.ylabel('Total Reward')
+    plt.savefig(save_path)
+
 # 主函數
 def main():
     # apply to apple silicon
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
-    
+    print(f"MPS available :{torch.backends.mps.is_available()}")
+
     # apply to Nvidia
     # device = torch.device("CUDA" if torch.backends.mps.is_available() else "cpu")
 
+
     env = DoomEnv() 
     model = DQN(env.observation_space.shape, env.action_space.n).to(device)
-    optimizer = optim.Adam(model.parameters())
+
+    learning_rate = 0.9
+    weight_dec  = 1e-5
+
+    optimizer = optim.Adam(model.parameters(),lr = learning_rate, weight_decay = weight_dec)
     criterion = nn.MSELoss()
     save_path = './model/model.pth'
     replay_buffer = ReplayBuffer(10000)
-
+    reward_list = []
     num_episodes = 1000
     batch_size = 32
     if os.path.exists(save_path):
@@ -89,16 +105,17 @@ def main():
         total_reward = 0
 
         while True:
+            # 選擇動作
             action = model(torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(device)).max(1)[1].item()
             next_state, reward, done, _ = env.step(action)
 
             replay_buffer.push(state, action, reward, next_state, done)
 
-            train(model, optimizer, criterion, replay_buffer, batch_size)
+            train(model, optimizer, criterion, replay_buffer, batch_size,device)
 
             state = next_state
             total_reward += reward
-
+            reward_list.append(total_reward)
             if done:
                 break
 
@@ -109,7 +126,7 @@ def main():
             torch.save(model.state_dict(), save_path)
             print("Model has been saved")
 
-                
+    draw_chart(reward_list,num_episodes)           
     env.close()
 
 
