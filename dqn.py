@@ -7,6 +7,8 @@ from collections import deque
 import os
 from main import DoomEnv
 import matplotlib.pyplot as plt
+import statistics
+
 
 # 定義 DQN 模型
 class DQN(nn.Module):
@@ -39,7 +41,11 @@ class ReplayBuffer:
         return len(self.buffer)
 
 # 訓練函數
+gradients = []
+
+
 def train(model, optimizer, criterion, replay_buffer, batch_size,device):
+    
     if len(replay_buffer) < batch_size:
         return
 
@@ -58,22 +64,36 @@ def train(model, optimizer, criterion, replay_buffer, batch_size,device):
     expected_q_value = reward + 0.99 * next_q_value * (1 - done)
 
     loss = criterion(q_value, expected_q_value)
-
     optimizer.zero_grad()
     loss.backward()
+
+    gradients.append(model.fc1.weight.grad.norm().item())
+
+
     optimizer.step()
 
 
-def draw_chart(data,epoch):
-    save_path =f'./img/reward_trend_with_{epoch}_epoch.png'
+def draw_chart(data,epoch,num):
+    save_path =f'./img/reward/reward_trend_with_{epoch*num}_epoch.png'
     plt.plot(data)
     plt.title('Reward Trend')
     plt.xlabel('Episodes')
     plt.ylabel('Total Reward')
     plt.savefig(save_path)
 
+def draw_gradient(data,epoch,num):
+    save_path =f'./img/gradient/gradent_with_{epoch*num}_epoch.png'
+    plt.plot(data)
+    plt.title("Gradient Norm During Training")
+    plt.xlabel("Training Steps")
+    plt.ylabel("Gradient Norm")
+    plt.savefig(save_path)
+
+
+
 # 主函數
 def main():
+    global gradients
     # apply to apple silicon
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     print(f"MPS available :{torch.backends.mps.is_available()}")
@@ -85,22 +105,30 @@ def main():
     env = DoomEnv() 
     model = DQN(env.observation_space.shape, env.action_space.n).to(device)
 
-    learning_rate = 0.9
-    weight_dec  = 1e-5
+    learning_rate = 0.01
+    weight_decary  = 1e-5
 
-    optimizer = optim.Adam(model.parameters(),lr = learning_rate, weight_decay = weight_dec)
+    optimizer = optim.Adam(model.parameters(),lr = learning_rate)
     criterion = nn.MSELoss()
     save_path = './model/model.pth'
+    
     replay_buffer = ReplayBuffer(10000)
     reward_list = []
-    num_episodes = 1000
+    num_episodes = 10000
     batch_size = 32
+    tmp_score = []
+
+    now_round =3
+
     if os.path.exists(save_path):
         model.load_state_dict(torch.load(save_path))
         print("Model loaded")
     else:
         print("Model does not exist")
+    gradients = []
+    tmp = 0
     for episode in range(num_episodes):
+        
         state = env.reset()
         total_reward = 0
 
@@ -115,18 +143,28 @@ def main():
 
             state = next_state
             total_reward += reward
-            reward_list.append(total_reward)
+
+            
             if done:
                 break
-
+        tmp_score.append(total_reward)    
         print(f"Episode: {episode + 1}, Total Reward: {total_reward}")
-
+        
         if episode % 100 == 0:
+            
+            reward_list.append(statistics.mean(tmp_score))
+            tmp_score = []
             os.makedirs(os.path.dirname(save_path), exist_ok=True)
             torch.save(model.state_dict(), save_path)
             print("Model has been saved")
 
-    draw_chart(reward_list,num_episodes)           
+        if episode %1000 == 0:
+            tmp +=1
+            rollback_save_path = f'./model/rollback/model_epoch_{tmp*1000}.pth'
+            torch.save(model.state_dict(), rollback_save_path)
+
+    draw_chart(reward_list,num_episodes,now_round)
+    draw_gradient(gradients,num_episodes,now_round)        
     env.close()
 
 
